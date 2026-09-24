@@ -21,3 +21,6 @@ backend/storage/usage_history.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Curated public deployment output
+.public-site/

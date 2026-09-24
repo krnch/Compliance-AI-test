@@ -1,0 +1,17 @@
+{
+  "routes": [
+    { "route": "/.auth/login/aad", "statusCode": 404 },
+    { "route": "/.auth/login/github", "statusCode": 404 },
+    { "route": "/.auth*", "statusCode": 404 },
+    { "route": "/admin*", "statusCode": 404 },
+    { "route": "/api*", "statusCode": 404 },
+    { "route": "/backend*", "statusCode": 404 },
+    { "route": "/.git*", "statusCode": 404 },
+    { "route": "/.env*", "statusCode": 404 }
+  ],
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin"
+  }
+}

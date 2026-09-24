@@ -102,7 +102,7 @@ Later, after backend repair/configuration:
 | Backend 500/503 generally | Inspect sanitized runtime/startup logs; do not assume all failures are credential-related. |
 | Browser CORS failure | Exact deployed frontend origin, response headers and backend health. |
 
-The existing unit tests have a separate isolation issue: some mocked query tests still let a Google client constructor perform a real model-metadata request using a dummy key. **Do not put your real key in unit-test CI to make these pass.** Fix client/network mocking in a separate change. This test failure does not diagnose the live backend.
+Unit tests use dummy credentials and mock both Google client constructors and query responses, including model fallback. [The pytest configuration](backend/pytest.ini) blocks Internet sockets so accidental API calls fail locally rather than reaching Google. **Do not put your real key in unit-test CI.** Earlier failures were caused by unmocked model-metadata calls; those failures did not diagnose the live backend. Passing unit tests likewise do not prove live credentials or backend health.
 
 ## Free-tier privacy and official references
 

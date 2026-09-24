@@ -4,8 +4,26 @@ import pytest
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 
-# Mock chromadb and LLM imports before importing main
-import sys
+
+@pytest.fixture(autouse=True)
+def mock_google_clients(monkeypatch):
+    """Isolate constructors as well as queries, including fallback imports."""
+    monkeypatch.setenv("GOOGLE_API_KEY", "test-key-not-used")
+    monkeypatch.setenv("AI_PROVIDER", "gemini")
+    # Never load a developer's real credentials into the test process.
+    with patch("dotenv.load_dotenv"):
+        import main
+
+    monkeypatch.setattr(main, "AI_PROVIDER", "gemini")
+    with (
+        patch("llama_index.llms.google_genai.GoogleGenAI") as llm,
+        patch("llama_index.embeddings.google_genai.GoogleGenAIEmbedding") as embedding,
+        patch.object(main, "LlamaSettings"),
+        patch.object(main, "ChromaVectorStore"),
+    ):
+        # Settings setters normally validate concrete LlamaIndex objects. Keep
+        # these per-test mocks out of the process-wide real Settings singleton.
+        yield llm, embedding
 
 
 @pytest.fixture(autouse=True)
@@ -101,7 +119,7 @@ class TestAskEndpoint:
     @patch("main.chromadb")
     @patch("main.VectorStoreIndex")
     @patch("main.os.path.exists", return_value=True)
-    def test_ask_returns_expected_format(self, mock_exists, mock_index_cls, mock_chroma, client):
+    def test_ask_returns_expected_format(self, mock_exists, mock_index_cls, mock_chroma, client, mock_google_clients):
         """Test /ask with fully mocked LLM — no real API call."""
         # Mock the ChromaDB chain
         mock_collection = MagicMock()
@@ -150,6 +168,13 @@ class TestAskEndpoint:
         # Verify usage was tracked
         assert data["usage"]["requests_today"] == 1
 
+        llm, embedding = mock_google_clients
+        llm.assert_called_once()
+        assert llm.call_args.kwargs["api_key"] == "test-key-not-used"
+        embedding.assert_called_once_with(
+            model_name="gemini-embedding-001", api_key="test-key-not-used"
+        )
+
     @patch("main.chromadb")
     @patch("main.VectorStoreIndex")
     @patch("main.os.path.exists", return_value=True)
@@ -192,6 +217,34 @@ class TestAskEndpoint:
 
 
 class TestAskFallbackBehavior:
+    @patch("main.chromadb")
+    @patch("main.VectorStoreIndex")
+    @patch("main.os.path.exists", return_value=True)
+    def test_ask_succeeds_after_mocked_model_fallback(self, mock_exists, mock_index_cls, mock_chroma, client, mock_google_clients):
+        """A fallback must construct another mock, never a real Google client."""
+        from usage_tracker import MODEL_CHAIN
+
+        response = MagicMock()
+        response.__str__ = lambda self: "A cited answer from the fallback model."
+        response.source_nodes = []
+        engine = mock_index_cls.from_vector_store.return_value.as_query_engine.return_value
+        engine.query.side_effect = [Exception("429 Resource exhausted"), response]
+
+        r = client.post("/ask", json={"question": "What is HIPAA?"})
+
+        assert r.status_code == 200
+        data = r.json()
+        assert data["fallback_used"] is True
+        assert data["model_used"] == MODEL_CHAIN[1]["name"]
+        assert data["usage"]["requests_today"] == 1
+        assert engine.query.call_count == 2
+        llm, embedding = mock_google_clients
+        assert [call.kwargs["model"] for call in llm.call_args_list] == [
+            MODEL_CHAIN[0]["name"], MODEL_CHAIN[1]["name"]
+        ]
+        assert all(call.kwargs["api_key"] == "test-key-not-used" for call in llm.call_args_list)
+        embedding.assert_called_once()
+
     @patch("main.chromadb")
     @patch("main.VectorStoreIndex")
     @patch("main.os.path.exists", return_value=True)

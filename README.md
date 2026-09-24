@@ -2,7 +2,9 @@
 
 A RAG-powered AI assistant that answers compliance and regulatory questions using official regulatory documents — with cited, accurate responses.
 
-**Live Demo:** [https://zealous-cliff-01e651f0f.7.azurestaticapps.net](https://zealous-cliff-01e651f0f.7.azurestaticapps.net)
+**Published frontend:** [https://gentle-field-09e568710.4.azurestaticapps.net/](https://gentle-field-09e568710.4.azurestaticapps.net/)
+
+**Backend recovery is still pending.** See [the deployment scope](PUBLIC-DEPLOYMENT.md) and [Google AI key setup explainer](GOOGLE_AI_SETUP.md) for Free-tier checks, private key configuration and the remaining index/model/backend requirements. A key alone does not guarantee a working AI demo.
 
 ---
 
@@ -103,12 +105,14 @@ compliance-policy-ai/
 - Python 3.11+
 - A Google AI API key ([Get one here](https://aistudio.google.com/apikey))
 
+Start with [Google AI key setup](GOOGLE_AI_SETUP.md) if you need to create or update a key later. Use `GOOGLE_API_KEY` in the backend only; never put it in the frontend or paste it into chat.
+
 ### Local Setup
 
 1. **Clone the repo**
    ```bash
-   git clone https://github.com/chaudharisp/Compliance-AI.git
-   cd Compliance-AI
+   git clone https://github.com/krnch/Compliance-AI-test.git
+   cd Compliance-AI-test
    ```
 
 2. **Set up the backend**
@@ -162,14 +166,7 @@ curl -X POST http://localhost:8000/ask \
 
 ### Backend (Google Cloud Run)
 
-```bash
-cd backend
-gcloud run deploy compliance-policy-ai \
-  --source . \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --set-env-vars="GOOGLE_API_KEY=your-key,ALLOWED_ORIGINS=https://your-frontend-url"
-```
+Follow [the private Cloud Run key-update steps](GOOGLE_AI_SETUP.md#existing-deployed-cloud-run-backend--later-after-ownershipcost-review). Keep credentials out of command history and container images. Key configuration is separate from restoring the backend/index; confirm ownership and separate hosting costs before deployment.
 
 ### Frontend (Azure Static Web Apps)
 

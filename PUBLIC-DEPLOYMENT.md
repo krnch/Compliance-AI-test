@@ -2,6 +2,8 @@
 
 The owner approved publishing the existing frontend first and repairing its external AI backend later. **Serving these pages is not proof that AI chat, model status or the usage dashboard works.** The Google Cloud Run API remains unchanged and returned 500/503 during assessment. No simulated responses are added.
 
+For the deferred backend setup, see [Google AI key setup](GOOGLE_AI_SETUP.md). It explains how to obtain a key in a verified-Free project, update the backend privately later, and check model access, vector data and CORS. No credential or cloud configuration is changed by that guide.
+
 ## Published artifact
 
 `node scripts/prepare-public-site.mjs` copies exactly six public files from `frontend/` plus the separate public configuration into `.public-site/`. It rejects symlinks and pre-existing output. No backend code, vector data, environment files, repository metadata or credentials are published. The source frontend configuration remains in Git but is replaced by the public deployment configuration in the artifact; no SPA fallback is needed for these four HTML pages.
